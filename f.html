@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Font JSON Generator (Firebase)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
+    <!-- ========= Include Firebase Init Script BEFORE main script ========= -->
+    <script src="firebase-init.js"></script>
+    <!-- ================================================================== -->
+
+    <style>
+        /* --- Styles (Unchanged) --- */
+        /* ... */
+        #bulkEntriesTable th { background-color: #f9fafb; padding: 10px 16px; text-align: left; font-size: 0.75rem; font-weight: 600; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em; }
+        #bulkEntriesTable td { padding: 10px 16px; border-bottom-width: 1px; border-color: #e5e7eb; background-color: #ffffff; font-size: 0.875rem; color: #1f2937; vertical-align: middle; }
+        #bulkEntriesTable input, #bulkEntriesTable select { width: 100%; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        #bulkEntriesTable input:focus, #bulkEntriesTable select:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px #a5b4fc; }
+        #bulkEntriesTable .path-cell { background-color: #f9fafb; font-size: 0.8rem; color: #6b7280; word-break: break-all; }
+        #bulkEntriesTable .action-cell { text-align: center; width: 50px; }
+        #bulkEntriesTable .action-cell button { background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; border-radius: 9999px; transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out; }
+        #bulkEntriesTable .action-cell button:hover { color: #dc2626; background-color: #fee2e2; }
+        .table-container { border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03); }
+        .table-wrapper { overflow-x: auto; }
+        .form-input { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #d1d5db; border-radius: 0.375rem; transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; font-size: 0.875rem; }
+        .form-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px #a5b4fc; }
+        .form-input.readonly { background-color: #f9fafb; color: #6b7280; cursor: not-allowed; }
+        .form-select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; }
+        .form-label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.625rem 1.25rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.875rem; transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; cursor: pointer; border: 1px solid transparent; }
+        .btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.5); }
+        .btn-primary { background-color: #4f46e5; color: #ffffff; border-color: #4f46e5; }
+        .btn-primary:hover { background-color: #4338ca; border-color: #4338ca; }
+        .btn-secondary { background-color: #e0e7ff; color: #4338ca; border-color: #e0e7ff; }
+        .btn-secondary:hover { background-color: #c7d2fe; border-color: #c7d2fe; }
+        .btn-tertiary { background-color: #f3f4f6; color: #374151; border-color: #d1d5db; }
+        .btn-tertiary:hover { background-color: #e5e7eb; border-color: #9ca3af; }
+        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.75rem; }
+        hr { border-color: #e5e7eb; }
+        .auth-container { max-width: 400px; margin: 2rem auto; }
+        .status-message { margin-top: 1rem; padding: 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; }
+        .status-success { background-color: #d1fae5; color: #065f46; }
+        .status-error { background-color: #fee2e2; color: #991b1b; }
+        .social-link-input-group { display: flex; align-items: center; margin-bottom: 0.5rem; }
+        .social-link-input-group input { flex-grow: 1; margin-right: 0.5rem; }
+        .social-link-input-group button { flex-shrink: 0; padding: 0.375rem; line-height: 1; }
+        /* --- End Styles --- */
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center min-h-screen p-4 md:p-6 lg:p-8">
+
+    <!-- Auth Section (HTML Unchanged) -->
+    <div id="authSection" class="w-full">
+        <!-- Login, Register, Reset Forms -->
+        <!-- ... -->
+        <div id="loginForm" class="auth-container bg-white p-6 md:p-8 rounded-lg shadow-lg"> <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Login</h2> <div class="mb-4"> <label for="loginEmail" class="form-label">Email:</label> <input type="email" id="loginEmail" class="form-input" placeholder="you@example.com" required> </div> <div class="mb-6"> <label for="loginPassword" class="form-label">Password:</label> <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required> </div> <button onclick="handleLogin()" class="btn btn-primary w-full mb-3">Login</button> <div class="text-sm text-center text-gray-600"> <a href="#" onclick="showRegisterForm()" class="font-medium text-indigo-600 hover:text-indigo-500">Don't have an account? Register</a> <span class="mx-1">|</span> <a href="#" onclick="showPasswordResetForm()" class="font-medium text-indigo-600 hover:text-indigo-500">Forgot Password?</a> </div> </div> <div id="registerForm" class="auth-container bg-white p-6 md:p-8 rounded-lg shadow-lg hidden"> <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Register</h2> <div class="mb-4"> <label for="registerEmail" class="form-label">Email:</label> <input type="email" id="registerEmail" class="form-input" placeholder="you@example.com" required> </div> <div class="mb-6"> <label for="registerPassword" class="form-label">Password:</label> <input type="password" id="registerPassword" class="form-input" placeholder="Choose a strong password (min 6 chars)" required> </div> <button onclick="handleRegister()" class="btn btn-primary w-full mb-3">Register</button> <div class="text-sm text-center text-gray-600"> <a href="#" onclick="showLoginForm()" class="font-medium text-indigo-600 hover:text-indigo-500">Already have an account? Login</a> </div> </div> <div id="passwordResetForm" class="auth-container bg-white p-6 md:p-8 rounded-lg shadow-lg hidden"> <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Reset Password</h2> <div class="mb-4"> <label for="resetEmail" class="form-label">Email:</label> <input type="email" id="resetEmail" class="form-input" placeholder="Enter your account email" required> </div> <button onclick="handlePasswordReset()" class="btn btn-primary w-full mb-3">Send Reset Link</button> <div class="text-sm text-center text-gray-600"> <a href="#" onclick="showLoginForm()" class="font-medium text-indigo-600 hover:text-indigo-500">Back to Login</a> </div> </div>
+        <div id="authStatus" class="auth-container status-message hidden"></div>
+    </div>
+
+    <!-- Main Application Container (HTML Unchanged) -->
+    <div id="appContainer" class="bg-white p-6 md:p-8 rounded-lg shadow-lg max-w-5xl w-full hidden">
+        <!-- Header, App Status, Sections 1, 2, 3 -->
+        <!-- ... -->
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200"> <h1 class="text-2xl font-semibold text-gray-800">Font Data Generator</h1> <div> <span id="userEmail" class="text-sm text-gray-600 mr-4"></span> <button onclick="handleLogout()" class="btn btn-tertiary btn-sm"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg> Logout </button> </div> </div> <div id="appStatus" class="status-message hidden mb-4"></div> <div class="mb-6 pb-6 border-b border-gray-200"> <h2 class="text-lg font-medium text-gray-700 mb-4">Add Single Font</h2> <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end"> <div> <label for="newRowName" class="form-label">Display Name:</label> <input type="text" id="newRowName" class="form-input" placeholder="e.g., Cool Font Regular"> </div> <div> <label for="newRowFontName" class="form-label">Font File Name:</label> <input type="text" id="newRowFontName" class="form-input" placeholder="e.g., CoolFont-Regular (no .ttf)"> </div> <div class="sm:col-span-2 md:col-span-1"> <div class="flex justify-between items-center mb-1"> <label for="newRowAuthor" class="form-label">Author:</label> <button onclick="openModal()" class="btn btn-secondary btn-sm" title="Add New Author"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>Add </button> </div> <select id="newRowAuthor" class="form-input form-select bg-white"> <option value="">Select author (optional)</option> </select> </div> <div class="col-span-1 sm:col-span-2 md:col-span-3"> <button onclick="addSingleRowFromInputs()" class="btn btn-secondary w-full md:w-auto mt-4 md:mt-0"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Add Font Entry to Table Below </button> </div> </div> </div> <div class="mb-6 pb-6 border-b border-gray-200"> <h2 class="text-lg font-medium text-gray-700 mb-4">Add Multiple Fonts via Paste</h2> <div class="grid grid-cols-1 md:grid-cols-2 gap-4"> <div> <label for="bulkFontNames" class="form-label">Paste Font File Names (one per line, no .ttf):</label> <textarea id="bulkFontNames" rows="5" class="form-input" placeholder="Arial
+TimesNewRoman-Bold
+ComicSansMS"></textarea> </div> <div> <div class="flex justify-between items-center mb-1"> <label for="bulkAuthorSelect" class="form-label">Author for these fonts: <span class="text-red-500">*</span></label> <button onclick="openModal()" class="btn btn-secondary btn-sm" title="Add New Author"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>Add </button> </div> <select id="bulkAuthorSelect" class="form-input form-select bg-white mb-3" required> <option value="">-- Select Author --</option> </select> <button onclick="generateBulkEntries()" class="btn btn-secondary w-full"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> Generate Table Entries from Paste </button> </div> </div> </div> <div> <h2 class="text-lg font-medium text-gray-700 mb-4">Font Entries (Edit details here)</h2> <p class="text-sm text-gray-500 mb-2">These are your currently loaded/edited entries. Use 'Save Entries to Cloud' to persist changes.</p> <div class="table-container mb-3"> <div class="table-wrapper"> <table id="bulkEntriesTable" class="min-w-full"> <thead> <tr> <th>Display Name</th> <th>Font File Name</th> <th>Path Preview</th> <th>Author</th> <th>Donate</th> <th>Action</th> </tr> </thead> <tbody id="bulkEntriesTableBody"> <tr id="emptyRowPlaceholder"> <td colspan="6" class="text-center text-gray-500 py-6"> No font entries loaded or added yet. Load from cloud or add new entries above. </td> </tr> </tbody> </table> </div> </div> <p id="rowCount" class="text-sm text-gray-500 mt-1 mb-6 text-right"></p> <div class="flex flex-col md:flex-row gap-3"> <button onclick="saveEntriesToFirestore()" class="flex-1 btn btn-primary order-1 md:order-1"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /> </svg> Save Current Table Entries to Cloud </button> <button onclick="downloadBulkJSON()" class="flex-1 btn btn-secondary order-2 md:order-2"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"> <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /> </svg> Download Current Table Entries as JSON </button> </div> </div>
+    </div>
+
+    <!-- Add Author Modal (HTML Unchanged) -->
+    <div id="authorModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-200 ease-out opacity-0 scale-95 z-50">
+       <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-200 ease-out opacity-100 scale-100"> <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Add New Author</h2> <label for="newAuthorName" class="form-label">Author Name:</label> <input type="text" id="newAuthorName" class="form-input mb-4" placeholder="Enter unique author name" required> <label class="form-label">Social Media Links:</label> <div id="socialLinksContainer" class="mb-2"> <div class="social-link-input-group"> <input type="url" class="newSocialMediaLink form-input" placeholder="https://twitter.com/author"> </div> </div> <button onclick="addSocialLinkInput()" class="btn btn-tertiary btn-sm mb-4"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg> Add Another Social Link </button> <label for="newDonate" class="form-label">Donation Link:</label> <input type="url" id="newDonate" class="form-input mb-6" placeholder="https://ko-fi.com/author" required> <div class="flex justify-end space-x-3"> <button onclick="closeModal()" class="btn btn-tertiary">Cancel</button> <button onclick="addAuthor()" class="btn btn-primary">Add Author</button> </div> </div>
+    </div>
+
+    <!-- Template for Author Select Box (HTML Unchanged) -->
+    <template id="authorSelectTemplate">
+         <select class="row-author-select form-input form-select bg-white" onchange="updateRowAuthorDetails(this)"> <option value="">Select an author</option> </select>
+    </template>
+
+    <script>
+        // Main application logic resides here
+
+        // --- Global Variables (Accessible after firebase-init.js runs) ---
+        // Note: 'app', 'auth', 'db' are expected to be populated by firebase-init.js
+        let authors = {}; // Local cache
+        let currentUser = null;
+        let rowCounter = 0;
+
+        // --- UI Element References ---
+        const authSection = document.getElementById('authSection');
+        const appContainer = document.getElementById('appContainer');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const passwordResetForm = document.getElementById('passwordResetForm');
+        const authStatusEl = document.getElementById('authStatus');
+        const appStatusEl = document.getElementById('appStatus');
+        const userEmailEl = document.getElementById('userEmail');
+        const tableBody = document.getElementById('bulkEntriesTableBody');
+        const emptyRowPlaceholder = document.getElementById('emptyRowPlaceholder');
+        // Modal specific elements are referenced inside modal functions
+
+        // --- Utility Functions ---
+        function showAppStatus(message, isError = false, duration = 4000) { /* ... */ if (!appStatusEl) return; appStatusEl.textContent = message; appStatusEl.className = `status-message mb-4 ${isError ? 'status-error' : 'status-success'}`; appStatusEl.classList.remove('hidden'); if (duration > 0) { setTimeout(() => { appStatusEl.classList.add('hidden'); }, duration); }}
+        function showAuthStatus(message, isError = false, duration = 4000) { /* ... */ if (!authStatusEl) return; authStatusEl.textContent = message; authStatusEl.className = `status-message ${isError ? 'status-error' : 'status-success'}`; authStatusEl.classList.remove('hidden'); if (duration > 0) { setTimeout(() => { authStatusEl.classList.add('hidden'); }, duration); }}
+        function clearAuthStatus() { /* ... */ if (!authStatusEl) return; authStatusEl.classList.add('hidden'); authStatusEl.textContent = ''; authStatusEl.className = 'status-message hidden'; }
+
+        // --- Authentication UI Switching ---
+        function showLoginForm() { /* ... */ loginForm.classList.remove('hidden'); registerForm.classList.add('hidden'); passwordResetForm.classList.add('hidden'); clearAuthStatus(); }
+        function showRegisterForm() { /* ... */ loginForm.classList.add('hidden'); registerForm.classList.remove('hidden'); passwordResetForm.classList.add('hidden'); clearAuthStatus(); }
+        function showPasswordResetForm() { /* ... */ loginForm.classList.add('hidden'); registerForm.classList.add('hidden'); passwordResetForm.classList.remove('hidden'); clearAuthStatus(); }
+
+        // --- Firebase Authentication Handlers ---
+        async function handleRegister() {
+            // *** Check if auth is available ***
+            if (typeof auth === 'undefined') { console.error("Auth not initialized"); return; }
+            const email = document.getElementById('registerEmail').value; const password = document.getElementById('registerPassword').value; clearAuthStatus();
+            if (!email || !password) { showAuthStatus("Please enter both email and password.", true); return; }
+            if (password.length < 6) { showAuthStatus("Password must be at least 6 characters long.", true); return; }
+            showAuthStatus("Registering...", false, 0);
+            try { await auth.createUserWithEmailAndPassword(email, password); console.log("Registration successful for:", email); }
+            catch (error) { console.error("Registration Error:", error); showAuthStatus(`Registration Failed: ${error.message}`, true); }
+        }
+        async function handleLogin() {
+             // *** Check if auth is available ***
+            if (typeof auth === 'undefined') { console.error("Auth not initialized"); showAuthStatus("Login service unavailable.", true); return; }
+            const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; clearAuthStatus();
+            if (!email || !password) { showAuthStatus("Please enter both email and password.", true); return; }
+            showAuthStatus("Logging in...", false, 0);
+            try { await auth.signInWithEmailAndPassword(email, password); console.log("Login successful for:", email); }
+            catch (error) { console.error("Login Error:", error); showAuthStatus(`Login Failed: ${error.message}`, true); }
+        }
+        async function handlePasswordReset() {
+             // *** Check if auth is available ***
+            if (typeof auth === 'undefined') { console.error("Auth not initialized"); return; }
+            const email = document.getElementById('resetEmail').value; if (!email) { showAuthStatus("Please enter your email address.", true); return; }
+            clearAuthStatus(); showAuthStatus("Sending reset email...", false, 0);
+            try { await auth.sendPasswordResetEmail(email); showAuthStatus("Password reset email sent! Check your inbox.", false); }
+            catch (error) { console.error("Password Reset Error:", error); showAuthStatus(`Password Reset Failed: ${error.message}`, true); }
+        }
+        async function handleLogout() {
+             // *** Check if auth is available ***
+            if (typeof auth === 'undefined') { console.error("Auth not initialized"); return; }
+            showAppStatus("Logging out...", false, 0);
+            try {
+                await auth.signOut(); currentUser = null; authors = {}; clearTable(); clearAppInputs();
+                console.log("User logged out");
+            } catch (error) { console.error("Logout Error:", error); showAppStatus(`Logout Failed: ${error.message}`, true); }
+        }
+        function clearAppInputs() {
+             document.getElementById("newRowName").value = ""; document.getElementById("newRowFontName").value = ""; document.getElementById("newRowAuthor").value = ""; document.getElementById("bulkFontNames").value = ""; document.getElementById("bulkAuthorSelect").value = "";
+        }
+
+        // --- Auth State Listener ---
+        // *** Check if auth object exists before attaching listener ***
+        if (typeof auth !== 'undefined') {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    currentUser = user; console.log("Auth State Change: User logged in -", user.uid, user.email);
+                    userEmailEl.textContent = user.email; authSection.classList.add('hidden'); appContainer.classList.remove('hidden'); clearAuthStatus();
+                    showAppStatus("Loading user data...", false, 0);
+                    try {
+                        // *** Check if db is available before loading ***
+                        if (typeof db !== 'undefined') {
+                            await loadAuthors();
+                            await loadFontEntriesFromFirestore();
+                            showAppStatus("User data loaded.", false);
+                        } else {
+                             showAppStatus("Database connection not available.", true, 0);
+                        }
+                    } catch (error) { showAppStatus("Error loading user data. Check console.", true); }
+                } else {
+                    currentUser = null; console.log("Auth State Change: User logged out or not logged in.");
+                    userEmailEl.textContent = ''; authSection.classList.remove('hidden'); appContainer.classList.add('hidden'); showLoginForm();
+                    clearTable(); authors = {}; populateAllAuthorDropdowns(); clearAppInputs(); showAppStatus("", false, 0);
+                }
+            });
+             console.log("Auth state listener attached.");
+        } else {
+            // Handle case where Firebase didn't initialize correctly
+            console.error("Firebase Auth not available when setting up listener. Login/App features disabled.");
+            showAuthStatus("Critical Error: Firebase connection failed. Please refresh.", true, 0);
+            // Optionally disable UI elements further here if needed
+            authSection.classList.remove('hidden'); // Ensure login form shows error
+            appContainer.classList.add('hidden');
+        }
+
+
+        // --- Author Management ---
+        async function loadAuthors() {
+            if (typeof db === 'undefined') { console.error("DB not initialized"); return; } // Check DB
+            console.log("Loading authors from Firestore..."); authors = {};
+            try {
+                const querySnapshot = await db.collection("authors").get();
+                querySnapshot.forEach((doc) => { /* ... populate authors cache ... */ const data = doc.data(); authors[doc.id] = { ...data, social_media: Array.isArray(data.social_media) ? data.social_media : [] }; });
+                console.log(`Authors loaded: ${Object.keys(authors).length} found.`); populateAllAuthorDropdowns();
+            } catch (error) { console.error("Error loading authors: ", error); showAppStatus("Error loading authors list.", true); populateAllAuthorDropdowns(); }
+        }
+        function populateAuthorDropdown(selectElement, placeholder = "Select an author") { /* ... as before ... */ if (!selectElement) return; const currentValue = selectElement.value; selectElement.innerHTML = `<option value="">${placeholder}</option>`; Object.keys(authors).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())).forEach(name => { const option = document.createElement("option"); option.value = name; option.textContent = name; selectElement.appendChild(option); }); if (authors[currentValue]) { selectElement.value = currentValue; } else if (selectElement.options.length > 1 && currentValue) { console.warn(`Previous author selection "${currentValue}" no longer available.`); }}
+        function populateAllAuthorDropdowns() { /* ... as before ... */ const newRowAuthorSelect = document.getElementById("newRowAuthor"); const bulkAuthorSelect = document.getElementById("bulkAuthorSelect"); const templateSelect = document.getElementById("authorSelectTemplate")?.content.querySelector("select"); if (newRowAuthorSelect) populateAuthorDropdown(newRowAuthorSelect, "Select author (optional)"); if (bulkAuthorSelect) populateAuthorDropdown(bulkAuthorSelect, "-- Select Author --"); if (templateSelect) populateAuthorDropdown(templateSelect); const existingSelects = tableBody.querySelectorAll('.row-author-select'); existingSelects.forEach(select => populateAuthorDropdown(select));}
+        function openModal() {
+             const authorModal = document.getElementById("authorModal"); const socialLinksContainer = document.getElementById('socialLinksContainer');
+             if (!authorModal || !socialLinksContainer) { console.error("Author Modal structure error!"); return; }
+             document.getElementById("newAuthorName").value = ""; document.getElementById("newDonate").value = "";
+             socialLinksContainer.innerHTML = `<div class="social-link-input-group"><input type="url" class="newSocialMediaLink form-input" placeholder="https://twitter.com/author"></div>`;
+             authorModal.classList.remove("hidden"); setTimeout(() => authorModal.classList.remove("opacity-0", "scale-95"), 10); setTimeout(() => document.getElementById("newAuthorName")?.focus(), 150);
+         }
+        function closeModal() { const authorModal = document.getElementById("authorModal"); if (!authorModal) return; authorModal.classList.add("opacity-0", "scale-95"); setTimeout(() => { authorModal.classList.add("hidden"); }, 200);}
+        function addSocialLinkInput() { const socialLinksContainer = document.getElementById('socialLinksContainer'); if (!socialLinksContainer) return; const ni = document.createElement('div'); ni.className = 'social-link-input-group'; ni.innerHTML = `<input type="url" class="newSocialMediaLink form-input" placeholder="https://another-link.com"><button type="button" onclick="removeSocialLinkInput(this)" class="btn btn-tertiary btn-sm text-red-600 hover:bg-red-100" title="Remove Link">×</button>`; socialLinksContainer.appendChild(ni); ni.querySelector('input').focus();}
+        function removeSocialLinkInput(buttonElement) { buttonElement.closest('.social-link-input-group').remove(); }
+        async function addAuthor() {
+            const socialLinksContainer = document.getElementById('socialLinksContainer');
+            if (typeof db === 'undefined' || !currentUser || !socialLinksContainer) { alert("System error or not logged in."); return; }
+            const nameInput = document.getElementById("newAuthorName"); const donateInput = document.getElementById("newDonate"); const name = nameInput.value.trim(); const donate = donateInput.value.trim();
+            const socialLinkInputs = socialLinksContainer.querySelectorAll('.newSocialMediaLink'); const socialMediaLinks = []; let invalidLinkFound = false;
+            socialLinkInputs.forEach(input => { const link = input.value.trim(); if (link) { if (!link.startsWith('http')) { invalidLinkFound = true; input.focus(); } socialMediaLinks.push(link); } });
+            if (!name) return alert("Author Name required!"); if (invalidLinkFound) return alert("Invalid Social Media URL found."); if (!donate || !donate.startsWith('http')) return alert("Valid Donation URL required!");
+            showAppStatus(`Adding author "${name}"...`, false, 0);
+            try {
+                const authorRef = db.collection("authors").doc(name); const doc = await authorRef.get(); if (doc.exists) { showAppStatus(`Author "${name}" exists.`, true); return; }
+                await authorRef.set({ social_media: socialMediaLinks, donate: donate, createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdByUid: currentUser.uid, createdByName: currentUser.email });
+                console.log("Author added:", name); authors[name] = { social_media: socialMediaLinks, donate: donate }; populateAllAuthorDropdowns();
+                const bulkAuthorSelect = document.getElementById("bulkAuthorSelect"); if (bulkAuthorSelect) bulkAuthorSelect.value = name; closeModal(); showAppStatus(`Author "${name}" added.`, false);
+            } catch (error) { console.error("Error adding author: ", error); showAppStatus(`Error: ${error.message}`, true); }
+        }
+
+        // --- Table Row & Data Logic ---
+        function updateRowCount() { /* ... */ const count = tableBody.querySelectorAll('tr:not(#emptyRowPlaceholder)').length; const countElement = document.getElementById('rowCount'); if (emptyRowPlaceholder) { emptyRowPlaceholder.classList.toggle('hidden', count > 0); } if (countElement) { countElement.textContent = `${count} entr${count === 1 ? 'y' : 'ies'} currently in table.`; }}
+        function clearTable() { /* ... */ tableBody.innerHTML = ''; if (emptyRowPlaceholder) { tableBody.appendChild(emptyRowPlaceholder); emptyRowPlaceholder.classList.remove('hidden'); } updateRowCount(); }
+        function createTableRow(fontData = {}, isFromFirestore = false) { /* ... as before ... */ rowCounter++; const newRow = tableBody.insertRow(); newRow.id = `row-${rowCounter}`; if (isFromFirestore && fontData.id) { newRow.dataset.firestoreId = fontData.id; } const nameCell = newRow.insertCell(); const nameInput = document.createElement("input"); nameInput.type = "text"; nameInput.placeholder = "Display Name"; nameInput.value = fontData.name || ""; nameInput.className = "row-name-input form-input"; nameCell.appendChild(nameInput); const fontNameCell = newRow.insertCell(); const fontNameInput = document.createElement("input"); fontNameInput.type = "text"; fontNameInput.placeholder = "File Name (no .ttf)"; fontNameInput.value = fontData.fontName || ""; fontNameInput.className = "row-fontname-input form-input"; fontNameCell.appendChild(fontNameInput); const pathCell = newRow.insertCell(); pathCell.className = "path-cell"; const updatePath = () => { const fName = fontNameInput.value.trim(); pathCell.textContent = fName ? `/content/fonts_db.json/${fName}.ttf` : "(Enter Font File Name)"; }; fontNameInput.oninput = updatePath; updatePath(); const authorCell = newRow.insertCell(); const template = document.getElementById('authorSelectTemplate'); if (!template) { console.error("Author select template missing!"); return null; } const clone = template.content.cloneNode(true); const authorSelect = clone.querySelector('select'); populateAuthorDropdown(authorSelect); authorSelect.value = fontData.author || ""; authorSelect.classList.add('row-author-select', 'form-input', 'form-select', 'bg-white'); authorSelect.onchange = () => updateRowAuthorDetails(authorSelect); authorCell.appendChild(clone); const donateCell = newRow.insertCell(); const donateInput = document.createElement("input"); donateInput.type = "url"; donateInput.placeholder = "https://..."; donateInput.value = fontData.donate || ""; donateInput.className = "row-donate-input form-input"; donateCell.appendChild(donateInput); if (fontData.author) { updateRowAuthorDetails(authorSelect); } const actionCell = newRow.insertCell(); actionCell.className = "action-cell"; const removeButton = document.createElement("button"); removeButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`; removeButton.title = "Remove row from table"; removeButton.onclick = function() { newRow.remove(); updateRowCount(); showAppStatus("Row removed from table. Save to Cloud to persist.", false, 2500); }; actionCell.appendChild(removeButton); updateRowCount(); return newRow; }
+        function updateRowAuthorDetails(authorSelectElement) { /* ... */ const row = authorSelectElement.closest('tr'); if (!row) return; const authorName = authorSelectElement.value; const authorDetails = authors[authorName]; const donateInput = row.querySelector('.row-donate-input'); if (donateInput) { donateInput.value = (authorName && authorDetails) ? (authorDetails.donate || "") : ""; } }
+        function getValidatedDataFromRow(row, rowIndex) { /* ... */ const nameInput = row.querySelector('.row-name-input'); const fontNameInput = row.querySelector('.row-fontname-input'); const pathCell = row.cells && row.cells.length > 2 ? row.cells[2] : null; const authorSelect = row.querySelector('.row-author-select'); const donateInput = row.querySelector('.row-donate-input'); if (!nameInput || !fontNameInput || !pathCell || !authorSelect || !donateInput) { console.error(`Structure error finding elements in row ${rowIndex || row.id}`, { nameInput, fontNameInput, pathCell, authorSelect, donateInput }); return { error: `Row ${rowIndex}: Structure error.` }; } const name = nameInput.value.trim(); const fontName = fontNameInput.value.trim(); const path = pathCell.textContent.trim(); const author = authorSelect.value; const donate = donateInput.value.trim(); let error = null; let errorElement = null; if (!name) { error = `Row ${rowIndex}: Missing Display Name.`; errorElement = nameInput; } else if (!fontName) { error = `Row ${rowIndex}: Missing Font File Name.`; errorElement = fontNameInput; } else if (!path || path === '(Enter Font File Name)') { error = `Row ${rowIndex}: Invalid Font File Name.`; errorElement = fontNameInput; } else if (donate && !donate.startsWith('http')) { error = `Row ${rowIndex}: Donate link must start with http(s).`; errorElement = donateInput; } if (error) { if (errorElement) errorElement.focus(); return { error }; } return { data: { name, fontName, path, author: author || null, donate: donate || null }, error: null };}
+
+        // --- Add/Generate Row Functions ---
+        function addSingleRowFromInputs() { /* ... as before ... */ const nameInput = document.getElementById("newRowName"); const fontNameInput = document.getElementById("newRowFontName"); const authorSelect = document.getElementById("newRowAuthor"); const name = nameInput.value.trim(); const fontName = fontNameInput.value.trim(); const author = authorSelect.value; if (!name) { nameInput.focus(); return alert("Please enter a Display Name."); } if (!fontName) { fontNameInput.focus(); return alert("Please enter the Font File Name."); } const authorDetails = authors[author] || {}; const newRow = createTableRow({ name: name, fontName: fontName, author: author, donate: authorDetails.donate || "" }, false); if (newRow) { nameInput.value = ""; fontNameInput.value = ""; authorSelect.value = ""; showAppStatus("Row added to table. Remember to save.", false, 2500); newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } else { alert("Failed to add row. Check console."); } }
+        function generateBulkEntries() { /* ... as before ... */ const bulkAuthorSelect = document.getElementById("bulkAuthorSelect"); const selectedAuthor = bulkAuthorSelect.value; const bulkFontNamesArea = document.getElementById("bulkFontNames"); if (!selectedAuthor) { bulkAuthorSelect.focus(); return alert("Please select an Author for bulk entries."); } const authorDetails = authors[selectedAuthor]; if (!authorDetails) { console.error("Bulk Add Error: Author details not found:", selectedAuthor); return alert("Error: Author details not found."); } const text = bulkFontNamesArea.value; const fontNames = text.split('\n').map(n => n.trim()).filter(n => n.length > 0); if (fontNames.length === 0) return alert("Please paste font names."); let addedCount = 0; let firstNewRow = null; fontNames.forEach(fontName => { const rowData = { name: fontName, fontName: fontName, author: selectedAuthor, donate: authorDetails.donate }; const newRow = createTableRow(rowData, false); if (newRow) { addedCount++; if (!firstNewRow) firstNewRow = newRow; } }); bulkFontNamesArea.value = ""; if (addedCount > 0) { showAppStatus(`Added ${addedCount} entries. Remember to save.`, false); updateRowCount(); if (firstNewRow) firstNewRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } else { showAppStatus("No valid font names found to add.", true); } }
+
+        // --- Firestore Font Entry Operations ---
+        async function loadFontEntriesFromFirestore() {
+            if (typeof db === 'undefined' || !currentUser) return; // Check DB and user
+             console.log("Loading font entries..."); showAppStatus("Loading entries...", false, 0); clearTable();
+            try {
+                const querySnapshot = await db.collection("fontEntries").where("userId", "==", currentUser.uid).orderBy("name").get();
+                if (!querySnapshot.empty) { querySnapshot.forEach((doc) => createTableRow({ id: doc.id, ...doc.data() }, true)); }
+                showAppStatus(`Loaded ${querySnapshot.size} entries.`, false); updateRowCount();
+            } catch (error) { /* ... error handling including index check ... */ console.error("Error loading font entries: ", error); if (error.code === 'failed-precondition') { showAppStatus("Error: Database index missing. Check F12 console for link.", true, 0); } else { showAppStatus(`Error loading entries: ${error.message}`, true); } updateRowCount(); }
+        }
+        async function saveEntriesToFirestore() {
+            if (typeof db === 'undefined' || !currentUser) return alert("Must be logged in."); // Check DB and user
+            const rows = tableBody.querySelectorAll('tr:not(#emptyRowPlaceholder)'); if (rows.length === 0 && !confirm("Table empty. Save anyway (deletes cloud entries)?")) return;
+            showAppStatus("Validating...", false, 0); const entriesToSave = []; const validationErrors = []; let firstErrorRow = null;
+            rows.forEach((row, index) => { const result = getValidatedDataFromRow(row, index + 1); if (result.error) { validationErrors.push(result.error); if (!firstErrorRow) firstErrorRow = row; } else if (result.data) { entriesToSave.push({ ...result.data, userId: currentUser.uid }); } });
+            if (validationErrors.length > 0) { const msg = `Fix ${validationErrors.length} errors:\n- ` + validationErrors.join("\n- "); showAppStatus("Validation errors.", true); alert(msg); if (firstErrorRow) { /* highlight row */ firstErrorRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); firstErrorRow.style.outline = '2px solid red'; setTimeout(() => { if(firstErrorRow) firstErrorRow.style.outline = ''; }, 3500); } return; }
+            const count = entriesToSave.length; const msg = count > 0 ? `Saving ${count}...` : "Saving (Clearing)..."; showAppStatus(msg, false, 0); console.log(`Saving ${count} for ${currentUser.uid}`);
+            try { const batch = db.batch(); const coll = db.collection("fontEntries"); const existing = await coll.where("userId", "==", currentUser.uid).get(); existing.forEach(doc => batch.delete(doc.ref)); entriesToSave.forEach(entry => { const ref = coll.doc(); batch.set(ref, { ...entry, savedAt: firebase.firestore.FieldValue.serverTimestamp() }); }); await batch.commit(); showAppStatus(`Saved ${count}! Reloading...`, false); await loadFontEntriesFromFirestore(); }
+            catch (error) { console.error("Save Error: ", error); showAppStatus(`Save Error: ${error.message}`, true); }
+        }
+
+        // --- Download JSON ---
+        function downloadJSONFile(dataArray, baseFilename = 'font_data') { /* ... as before ... */ if (!dataArray || dataArray.length === 0) { showAppStatus("No data to download.", true); return alert("No data."); } const exportData = dataArray.map(item => ({ name: item.name, fontName: item.fontName, path: item.path, author: item.author || undefined, donate: item.donate || undefined })); const jsonString = JSON.stringify(exportData, null, 2); const blob = new Blob([jsonString], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); const firstValidName = exportData[0]?.name?.replace(/[^a-z0-9_.-]/gi, '_').toLowerCase(); const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); const filename = `${firstValidName || baseFilename}_export_${timestamp}.json`; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href); showAppStatus("JSON download initiated.", false, 3000); }
+        function downloadBulkJSON() { /* ... as before ... */ const rows = tableBody.querySelectorAll('tr:not(#emptyRowPlaceholder)'); const validatedData = []; const validationErrors = []; let firstErrorRow = null; rows.forEach((row, index) => { const result = getValidatedDataFromRow(row, index + 1); if (result.error) { validationErrors.push(result.error); if (!firstErrorRow) firstErrorRow = row; } else if (result.data) { validatedData.push(result.data); } }); if (validationErrors.length > 0) { const msg = `Fix ${validationErrors.length} errors before download:\n- ` + validationErrors.join("\n- "); showAppStatus("Validation errors.", true); alert(msg); if (firstErrorRow) { /* highlight */ firstErrorRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); firstErrorRow.style.outline = '2px solid red'; setTimeout(() => { firstErrorRow.style.outline = ''; }, 3500); } return; } if (validatedData.length > 0) { downloadJSONFile(validatedData, 'font_entries'); } else { alert("Table empty or no valid rows."); } }
+
+        // --- Initial Load Trigger ---
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("DOM Loaded. Main script running checks...");
+            // Check if Firebase failed during init (firebase-init.js)
+            if (typeof auth === 'undefined' || typeof db === 'undefined') {
+                console.error("Firebase auth/db objects not found. Init likely failed.");
+                // The auth listener setup already handles showing an error
+            }
+             // Setup initial UI state
+            updateRowCount();
+        });
+
+    </script>
+</body>
+</html>
